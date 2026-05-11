@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DESINFORMA — Fake News em Foco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0a0a12;
+  --bg2: #0f0f1e;
+  --violet: #6c3bff;
+  --violet-light: #9b6dff;
+  --orange: #ff6b35;
+  --gold: #f5c842;
+  --teal: #00e5c3;
+  --pink: #ff4d8d;
+  --white: #f8f6ff;
+  --muted: #888aac;
+  --card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.08);
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* CURSOR */
+#cursor {
+  width: 12px; height: 12px;
+  background: var(--orange);
+  border-radius: 50%;
+  position: fixed; top:0; left:0;
+  pointer-events: none; z-index:99999;
+  mix-blend-mode: exclusion;
+  transition: transform 0.15s ease;
+}
+#cursor-ring {
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(255,107,53,0.5);
+  border-radius: 50%;
+  position: fixed; top:0; left:0;
+  pointer-events: none; z-index:99998;
+  transition: all 0.08s ease;
+}
+
+/* CANVAS */
+#particles { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+/* PROGRESS */
+#progress-bar {
+  position:fixed; top:0; left:0; height:2px;
+  background: linear-gradient(90deg, var(--violet), var(--orange), var(--gold));
+  z-index:2000; transition: width 0.4s ease;
+}
+
+/* NAV */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  padding: 20px 48px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.nav-logo {
+  font-family:'Syne',sans-serif; font-weight:800; font-size:18px;
+  letter-spacing:4px; text-transform:uppercase;
+  background: linear-gradient(90deg, var(--violet-light), var(--orange));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.nav-dots { display:flex; gap:10px; align-items:center; }
+.nav-dot {
+  width:8px; height:8px; border-radius:50%;
+  background: var(--border); border:1px solid rgba(255,255,255,0.2);
+  cursor:pointer; transition:all 0.3s;
+}
+.nav-dot.active {
+  background: var(--orange); border-color: var(--orange);
+  box-shadow: 0 0 12px var(--orange); transform:scale(1.4);
+}
+
+/* SLIDE BASE */
+.slide {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden; padding:100px 48px 60px;
+}
+
+/* HERO */
+#slide-hero {
+  background:
+    radial-gradient(ellipse 120% 80% at 70% 50%, rgba(108,59,255,0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 60% at 20% 30%, rgba(255,107,53,0.1) 0%, transparent 55%),
+    var(--bg);
+}
+.hero-inner { text-align:center; max-width:900px; z-index:2; }
+.hero-eyebrow {
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'Syne',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:4px; text-transform:uppercase; color:var(--orange);
+  background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.25);
+  padding:6px 16px; border-radius:100px; margin-bottom:40px;
+  animation: fadeUp 1s 0.2s both;
+}
+.hero-eyebrow::before {
+  content:''; width:6px; height:6px; border-radius:50%;
+  background:var(--orange); animation:blink 1.4s infinite;
+}
+.hero-title {
+  font-family:'DM Serif Display',serif;
+  font-size: clamp(52px, 8vw, 110px);
+  line-height:0.95; letter-spacing:-2px; margin-bottom:32px;
+  animation: fadeUp 1s 0.35s both;
+}
+.hero-title .grad {
+  background: linear-gradient(135deg, #fff 0%, var(--violet-light) 50%, var(--orange) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-title .italic { font-style:italic; color:var(--gold); -webkit-text-fill-color:var(--gold); }
+.hero-desc {
+  font-size:18px; color:var(--muted); line-height:1.7;
+  max-width:580px; margin:0 auto 52px;
+  animation: fadeUp 1s 0.5s both;
+}
+.hero-cta { display:inline-flex; gap:48px; align-items:center; animation: fadeUp 1s 0.65s both; }
+.btn-primary {
+  padding:16px 40px;
+  background:linear-gradient(135deg,var(--violet),var(--violet-light));
+  color:white; font-family:'Syne',sans-serif; font-size:13px;
+  font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  border:none; border-radius:100px; cursor:pointer;
+  position:relative; overflow:hidden;
+  transition:transform 0.3s, box-shadow 0.3s; text-decoration:none;
+  display:inline-block;
+}
+.btn-primary::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg, var(--orange), var(--gold));
+  opacity:0; transition:opacity 0.3s; border-radius:100px;
+}
+.btn-primary:hover { transform:translateY(-3px); box-shadow:0 20px 50px rgba(108,59,255,0.4); }
+.btn-primary:hover::after { opacity:1; }
+.btn-primary span { position:relative; z-index:1; }
+.hero-scroll { display:flex; align-items:center; gap:10px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+
+.floating-badge {
+  position:absolute; background:var(--card); border:1px solid var(--border);
+  backdrop-filter:blur(20px); border-radius:16px; padding:14px 20px; font-size:13px;
+  animation:float 4s ease-in-out infinite; z-index:1;
+}
+.floating-badge strong { display:block; font-family:'Syne',sans-serif; font-size:22px; font-weight:800; }
+.fb1 { top:20%; left:5%; animation-delay:0s; }
+.fb2 { top:25%; right:6%; animation-delay:1.5s; }
+.fb3 { bottom:20%; left:8%; animation-delay:0.8s; }
+
+/* SECTION ELEMENTS */
+.section-pill {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:'Syne',sans-serif; font-size:10px; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase;
+  padding:5px 14px; border-radius:100px; margin-bottom:24px;
+}
+.pill-teal   { color:var(--teal);  background:rgba(0,229,195,0.1); border:1px solid rgba(0,229,195,0.25); }
+.pill-orange { color:var(--orange);background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.25); }
+.pill-violet { color:var(--violet-light);background:rgba(108,59,255,0.1); border:1px solid rgba(108,59,255,0.25); }
+.pill-pink   { color:var(--pink);  background:rgba(255,77,141,0.1); border:1px solid rgba(255,77,141,0.25); }
+.pill-gold   { color:var(--gold);  background:rgba(245,200,66,0.1); border:1px solid rgba(245,200,66,0.25); }
+
+.section-title {
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(32px,4vw,52px); line-height:1.1; margin-bottom:20px;
+}
+.section-body { font-size:16px; color:var(--muted); line-height:1.8; margin-bottom:28px; }
+
+/* WHAT IS */
+#slide-what {
+  background:
+    linear-gradient(135deg, rgba(0,229,195,0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 60% at 80% 60%, rgba(108,59,255,0.12) 0%, transparent 60%),
+    var(--bg2);
+}
+.what-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:64px;
+  align-items:center; max-width:1200px; width:100%;
+}
+.big-quote {
+  font-family:'DM Serif Display',serif; font-size:20px; font-style:italic;
+  color:var(--white); line-height:1.55; padding:24px 24px 24px 32px;
+  border-left:3px solid var(--teal); background:rgba(0,229,195,0.04);
+  border-radius:0 12px 12px 0;
+}
+.types-stack { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+.type-row {
+  display:flex; align-items:center; gap:16px; padding:14px 18px;
+  background:var(--card); border:1px solid var(--border); border-radius:14px;
+  cursor:default; transition:all 0.3s;
+}
+.type-row:hover { border-color:rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); transform:translateX(6px); }
+.type-emoji { font-size:26px; }
+.type-name  { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; }
+.type-def   { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* CAUSES */
+#slide-causes {
+  background:
+    radial-gradient(ellipse 70% 70% at 30% 50%, rgba(245,200,66,0.07) 0%, transparent 65%),
+    var(--bg);
+}
+.causes-wrap { max-width:1200px; width:100%; }
+.causes-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.cause-card {
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:32px 24px; transition:all 0.4s; cursor:default; position:relative; overflow:hidden;
+}
+.cause-card::before {
+  content:''; position:absolute; inset:0; border-radius:20px;
+  background:linear-gradient(135deg,rgba(108,59,255,0.1),rgba(255,107,53,0.05));
+  opacity:0; transition:opacity 0.4s;
+}
+.cause-card:hover { transform:translateY(-8px); border-color:rgba(255,255,255,0.18); }
+.cause-card:hover::before { opacity:1; }
+.cause-num   { font-family:'Syne',sans-serif; font-size:11px; font-weight:800; letter-spacing:3px; color:var(--orange); margin-bottom:16px; display:block; }
+.cause-icon  { font-size:36px; display:block; margin-bottom:14px; }
+.cause-name  { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:10px; }
+.cause-desc  { font-size:13px; color:var(--muted); line-height:1.7; }
+
+/* CASES */
+#slide-cases { background:var(--bg2); min-height:auto; padding:80px 48px; }
+.cases-wrap  { max-width:1200px; width:100%; margin:0 auto; }
+.cases-header { text-align:center; margin-bottom:60px; }
+.fn-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.fn-card {
+  border-radius:24px; overflow:hidden; background:var(--card); border:1px solid var(--border);
+  cursor:pointer; transition:transform 0.4s, box-shadow 0.4s, border-color 0.4s;
+  position:relative; display:flex; flex-direction:column;
+}
+.fn-card:hover { transform:translateY(-10px) scale(1.01); box-shadow:0 30px 80px rgba(0,0,0,0.5); }
+.fn-img-wrap { height:200px; overflow:hidden; position:relative; background:#111; }
+.fn-img-wrap img {
+  width:100%; height:100%; object-fit:cover;
+  filter:brightness(0.7) saturate(1.2); transition:transform 0.6s, filter 0.4s;
+}
+.fn-card:hover .fn-img-wrap img { transform:scale(1.06); filter:brightness(0.85) saturate(1.4); }
+.fn-img-overlay { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,10,18,0.85) 0%,transparent 60%); }
+.fn-year-badge {
+  position:absolute; top:14px; left:14px; padding:4px 12px; border-radius:100px;
+  font-family:'Syne',sans-serif; font-size:11px; font-weight:800; letter-spacing:2px;
+}
+.fn-sector-badge {
+  position:absolute; top:14px; right:14px; padding:4px 12px;
+  background:rgba(255,255,255,0.12); backdrop-filter:blur(10px);
+  border-radius:100px; font-size:11px; font-weight:600; letter-spacing:1px;
+}
+.fn-body { padding:24px 22px 28px; flex:1; display:flex; flex-direction:column; }
+.fn-title { font-family:'DM Serif Display',serif; font-size:20px; line-height:1.25; margin-bottom:10px; }
+.fn-lead  { font-size:13px; color:var(--muted); line-height:1.65; margin-bottom:16px; flex:1; }
+.fn-meta {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:auto;
+  padding-top:16px; border-top:1px solid var(--border);
+}
+.fn-meta-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:3px; }
+.fn-meta-value { font-size:12px; font-weight:600; line-height:1.4; }
+.fn-sites { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+.fn-site-tag {
+  font-size:10px; padding:3px 9px; border-radius:100px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12);
+  color:var(--muted); font-weight:600;
+}
+.fn-click-hint {
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); text-align:center; margin-top:12px;
+  opacity:0; transition:opacity 0.3s;
+}
+.fn-card:hover .fn-click-hint { opacity:1; }
+
+/* CONSEQUENCES */
+#slide-conseq {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 50%, rgba(255,77,141,0.08) 0%, transparent 65%),
+    var(--bg);
+}
+.conseq-wrap { max-width:1100px; width:100%; }
+.conseq-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-top:50px; }
+.conseq-card {
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:32px; position:relative; overflow:hidden; transition:all 0.3s;
+}
+.conseq-card:hover { border-color:rgba(255,255,255,0.15); transform:scale(1.02); }
+.conseq-card.big { grid-column:span 2; display:grid; grid-template-columns:auto 1fr; gap:32px; align-items:center; }
+.conseq-icon  { font-size:48px; }
+.conseq-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; margin-bottom:10px; }
+.conseq-text  { font-size:14px; color:var(--muted); line-height:1.7; }
+.conseq-accent { position:absolute; bottom:0; left:0; height:3px; border-radius:0 0 0 20px; }
+
+/* TIPS */
+#slide-tips {
+  background:
+    linear-gradient(135deg, rgba(108,59,255,0.06) 0%, transparent 50%),
+    var(--bg2);
+}
+.tips-wrap  { max-width:1100px; width:100%; }
+.tips-grid  { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:50px; }
+.tip-card {
+  background:var(--card); border:1px solid var(--border); border-radius:18px;
+  padding:28px 20px; text-align:center; transition:all 0.3s; cursor:default;
+}
+.tip-card:hover { background:rgba(108,59,255,0.08); border-color:rgba(108,59,255,0.35); transform:translateY(-6px); }
+.tip-num  { font-family:'Syne',sans-serif; font-size:11px; font-weight:800; letter-spacing:3px; color:var(--violet-light); display:block; margin-bottom:10px; }
+.tip-icon { font-size:32px; display:block; margin-bottom:14px; }
+.tip-name { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; margin-bottom:8px; }
+.tip-desc { font-size:12px; color:var(--muted); line-height:1.65; }
+
+/* TEAM */
+#slide-team {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(108,59,255,0.12) 0%, transparent 70%),
+    var(--bg);
+}
+.team-wrap  { max-width:1000px; width:100%; text-align:center; }
+.team-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:52px; }
+.member-card {
+  background:var(--card); border:1px solid var(--border); border-radius:24px;
+  padding:40px 28px; transition:all 0.4s; cursor:default; position:relative; overflow:hidden;
+}
+.member-card:hover { transform:translateY(-8px); border-color:rgba(155,109,255,0.4); box-shadow:0 24px 60px rgba(108,59,255,0.2); }
+.member-av {
+  width:72px; height:72px; border-radius:50%; margin:0 auto 20px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:white;
+}
+.av1 { background:linear-gradient(135deg,var(--violet),var(--orange)); }
+.av2 { background:linear-gradient(135deg,var(--teal),var(--violet)); }
+.av3 { background:linear-gradient(135deg,var(--orange),var(--gold)); }
+.member-name { font-family:'DM Serif Display',serif; font-size:22px; margin-bottom:6px; }
+.member-role { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--violet-light); font-weight:700; }
+.member-sep  { width:30px; height:2px; background:linear-gradient(90deg,var(--violet),var(--orange)); margin:16px auto; border-radius:2px; }
+.member-bio  { font-size:13px; color:var(--muted); line-height:1.7; }
+.team-footer-note {
+  margin-top:48px; padding:28px 40px;
+  background:rgba(108,59,255,0.06); border:1px solid rgba(108,59,255,0.15); border-radius:20px;
+}
+.team-footer-note p { font-family:'DM Serif Display',serif; font-size:18px; font-style:italic; color:var(--muted); line-height:1.7; }
+.team-footer-note strong { color:var(--white); font-style:normal; }
+
+/* MODAL */
+#modal-overlay {
+  position:fixed; inset:0; background:rgba(5,5,15,0.85); backdrop-filter:blur(12px);
+  z-index:5000; display:flex; align-items:center; justify-content:center; padding:24px;
+  opacity:0; pointer-events:none; transition:opacity 0.35s;
+}
+#modal-overlay.open { opacity:1; pointer-events:all; }
+.modal-box {
+  background:#0f0f22; border:1px solid rgba(255,255,255,0.1); border-radius:28px;
+  max-width:760px; width:100%; max-height:90vh; overflow-y:auto;
+  transform:scale(0.92) translateY(20px); transition:transform 0.35s; position:relative;
+}
+#modal-overlay.open .modal-box { transform:scale(1) translateY(0); }
+.modal-img  { height:260px; width:100%; object-fit:cover; border-radius:28px 28px 0 0; filter:brightness(0.75); }
+.modal-content { padding:36px 40px 40px; }
+.modal-pills { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.modal-title { font-family:'DM Serif Display',serif; font-size:28px; line-height:1.2; margin-bottom:18px; }
+.modal-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+.modal-field-label { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:5px; }
+.modal-field-val   { font-size:13px; font-weight:600; line-height:1.4; }
+.modal-section { margin-bottom:24px; }
+.modal-section-title { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--orange); margin-bottom:10px; }
+.modal-text { font-size:15px; color:var(--muted); line-height:1.75; }
+.modal-truth {
+  padding:16px 20px; background:rgba(0,229,195,0.08); border:1px solid rgba(0,229,195,0.2);
+  border-radius:12px; font-size:14px; color:var(--teal); line-height:1.6;
+}
+.modal-close {
+  position:absolute; top:18px; right:18px; width:40px; height:40px;
+  background:rgba(255,255,255,0.08); border:none; border-radius:50%;
+  color:white; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background 0.2s; z-index:10;
+}
+.modal-close:hover { background:rgba(255,255,255,0.15); }
+
+/* ANIMATIONS */
+@keyframes fadeUp  { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+@keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+@keyframes blink   { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.reveal-up { opacity:0; transform:translateY(36px); transition:opacity 0.7s ease, transform 0.7s ease; }
+.reveal-up.visible { opacity:1; transform:translateY(0); }
+.reveal-up:nth-child(1){ transition-delay:0.05s } .reveal-up:nth-child(2){ transition-delay:0.12s }
+.reveal-up:nth-child(3){ transition-delay:0.19s } .reveal-up:nth-child(4){ transition-delay:0.26s }
+.reveal-up:nth-child(5){ transition-delay:0.33s } .reveal-up:nth-child(6){ transition-delay:0.40s }
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--violet); border-radius:10px; }
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .what-grid,.fn-cards,.team-cards { grid-template-columns:1fr; }
+  .causes-grid { grid-template-columns:1fr 1fr; }
+  .tips-grid   { grid-template-columns:1fr 1fr; }
+  .conseq-grid { grid-template-columns:1fr; }
+  .conseq-card.big { grid-template-columns:1fr; grid-column:span 1; }
+  .modal-grid  { grid-template-columns:1fr 1fr; }
+  nav { padding:16px 24px; }
+  .slide { padding:90px 24px 50px; }
+  #slide-cases { padding:80px 24px; }
+  .floating-badge { display:none; }
+  .modal-content { padding:24px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div id="progress-bar" style="width:0%"></div>
+<canvas id="particles"></canvas>
+
+<nav>
+  <div class="nav-logo">DESINFORMA</div>
+  <div class="nav-dots">
+    <div class="nav-dot active" onclick="goTo('slide-hero')" title="Início"></div>
+    <div class="nav-dot" onclick="goTo('slide-what')" title="O que é"></div>
+    <div class="nav-dot" onclick="goTo('slide-causes')" title="Causas"></div>
+    <div class="nav-dot" onclick="goTo('slide-cases')" title="Casos"></div>
+    <div class="nav-dot" onclick="goTo('slide-conseq')" title="Consequências"></div>
+    <div class="nav-dot" onclick="goTo('slide-tips')" title="Como identificar"></div>
+    <div class="nav-dot" onclick="goTo('slide-team')" title="Equipe"></div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="slide" id="slide-hero">
+  <div class="floating-badge fb1" style="color:var(--orange)">
+    <strong style="color:var(--orange)">6×</strong>mais rápido que a verdade
+  </div>
+  <div class="floating-badge fb2" style="color:var(--teal)">
+    <strong style="color:var(--teal)">86%</strong>dos br. já receberam
+  </div>
+  <div class="floating-badge fb3" style="color:var(--violet-light)">
+    <strong style="color:var(--violet-light)">US$78bi</strong>custo global/ano
+  </div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Projeto Integralista — Corresponsabilidade Social</div>
+    <h1 class="hero-title">
+      <span class="grad">A era da</span><br>
+      <span class="italic">Des</span><span class="grad">infor</span><span class="italic">mação</span>
+    </h1>
+    <p class="hero-desc">Fake News não são só mentiras — são armas que moldam realidades, derrubam democracias e custam vidas. Entenda como funcionam.</p>
+    <div class="hero-cta">
+      <a href="#slide-what" class="btn-primary"><span>Explorar →</span></a>
+      <div class="hero-scroll"><span>Role para descobrir</span><span style="font-size:20px">↓</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- O QUE SÃO -->
+<section class="slide" id="slide-what">
+  <div class="what-grid">
+    <div>
+      <div class="section-pill pill-teal reveal-up">Definição</div>
+      <h2 class="section-title reveal-up">O que são<br><em>Fake News?</em></h2>
+      <p class="section-body reveal-up">São informações <strong style="color:var(--white)">deliberadamente falsas</strong> disfarçadas de notícias legítimas — criadas para manipular, influenciar ou causar dano. A era digital amplificou seu alcance para bilhões em segundos.</p>
+      <div class="big-quote reveal-up">
+        "Conteúdos fabricados que imitam mídia de notícias em forma, mas não em intenção ou ética."
+        <span style="display:block;margin-top:10px;font-family:'Syne',sans-serif;font-size:10px;letter-spacing:2px;color:var(--teal);font-style:normal;">— Melissa Zimdars, 2016</span>
+      </div>
+    </div>
+    <div>
+      <div class="section-pill pill-teal reveal-up">Tipos</div>
+      <h3 class="section-title reveal-up" style="font-size:clamp(22px,2.5vw,32px)">Nem toda mentira é igual</h3>
+      <div class="types-stack">
+        <div class="type-row reveal-up"><span class="type-emoji">🎭</span><div><div class="type-name">Desinformação</div><div class="type-def">Falsa com intenção deliberada de enganar e causar dano.</div></div></div>
+        <div class="type-row reveal-up"><span class="type-emoji">⚠️</span><div><div class="type-name">Misinformação</div><div class="type-def">Falsa, mas compartilhada por engano — sem má intenção.</div></div></div>
+        <div class="type-row reveal-up"><span class="type-emoji">🤖</span><div><div class="type-name">Deep Fakes</div><div class="type-def">Vídeos e áudios manipulados por IA para fabricar realidades.</div></div></div>
+        <div class="type-row reveal-up"><span class="type-emoji">🔪</span><div><div class="type-name">Malinformação</div><div class="type-def">Verdade usada com intenção de causar dano.</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAUSAS -->
+<section class="slide" id="slide-causes">
+  <div class="causes-wrap">
+    <div style="margin-bottom:52px">
+      <div class="section-pill pill-gold reveal-up">Por que existem?</div>
+      <h2 class="section-title reveal-up">As raízes da <em style="color:var(--gold)">desinformação</em></h2>
+    </div>
+    <div class="causes-grid">
+      <div class="cause-card reveal-up"><span class="cause-num">01</span><span class="cause-icon">💰</span><div class="cause-name">Interesse Financeiro</div><p class="cause-desc">Sites falsos geram receita publicitária enorme. Títulos sensacionalistas atraem cliques — e cliques valem dinheiro.</p></div>
+      <div class="cause-card reveal-up"><span class="cause-num">02</span><span class="cause-icon">🏛️</span><div class="cause-name">Manipulação Política</div><p class="cause-desc">Partidos e líderes usam fake news para influenciar eleições, desacreditar adversários e mobilizar bases radicais.</p></div>
+      <div class="cause-card reveal-up"><span class="cause-num">03</span><span class="cause-icon">🧠</span><div class="cause-name">Viés de Confirmação</div><p class="cause-desc">O cérebro acredita no que confirma suas crenças. Fake news exploram esse bug cognitivo para se espalharem.</p></div>
+      <div class="cause-card reveal-up"><span class="cause-num">04</span><span class="cause-icon">📱</span><div class="cause-name">Algoritmos</div><p class="cause-desc">Redes sociais priorizam conteúdo que gera raiva e medo — e fake news provocam mais reações que fatos.</p></div>
+      <div class="cause-card reveal-up"><span class="cause-num">05</span><span class="cause-icon">📚</span><div class="cause-name">Baixa Alfabetização Midiática</div><p class="cause-desc">Sem educação digital, muitas pessoas não sabem distinguir fontes confiáveis de sites maliciosos.</p></div>
+      <div class="cause-card reveal-up"><span class="cause-num">06</span><span class="cause-icon">😤</span><div class="cause-name">Polarização Social</div><p class="cause-desc">Sociedades divididas criam terreno fértil: cada lado quer acreditar no pior sobre o "lado oposto".</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CASOS -->
+<section id="slide-cases">
+  <div class="cases-wrap">
+    <div class="cases-header">
+      <div class="section-pill pill-orange reveal-up" style="display:inline-flex">3 Casos Reais</div>
+      <h2 class="section-title reveal-up">Fake News que <em style="color:var(--orange)">sacudiram</em> o mundo</h2>
+      <p class="section-body reveal-up" style="max-width:500px;margin:0 auto">Clique em qualquer card para ver a análise completa ↓</p>
+    </div>
+    <div class="fn-cards">
+
+      <div class="fn-card reveal-up" onclick="openModal('saude')" style="border-color:rgba(255,77,141,0.25)">
+        <div class="fn-img-wrap">
+          <img src="https://images.unsplash.com/photo-1584118624012-df056829fbd0?w=600&q=80" alt="Vacinas" loading="lazy">
+          <div class="fn-img-overlay"></div>
+          <span class="fn-year-badge" style="background:rgba(255,77,141,0.85);color:white">1998 – hoje</span>
+          <span class="fn-sector-badge">🏥 Saúde</span>
+        </div>
+        <div class="fn-body">
+          <div class="section-pill pill-pink" style="display:inline-flex;margin-bottom:10px;font-size:9px">Internacional</div>
+          <div class="fn-title">"Vacinas causam autismo"</div>
+          <p class="fn-lead">Estudo fraudulento britânico gerou movimento antivacina global que ainda mata crianças em 2024.</p>
+          <div class="fn-meta">
+            <div><div class="fn-meta-label">Vítimas</div><div class="fn-meta-value" style="color:var(--pink)">Crianças · Pais</div></div>
+            <div><div class="fn-meta-label">Risco</div><div class="fn-meta-value" style="color:var(--pink)">⚠️ Morte</div></div>
+          </div>
+          <div class="fn-sites">
+            <span class="fn-site-tag">WhatsApp</span><span class="fn-site-tag">Facebook</span><span class="fn-site-tag">YouTube</span><span class="fn-site-tag">Blogs</span>
+          </div>
+          <div class="fn-click-hint">clique para saber mais →</div>
+        </div>
+      </div>
+
+      <div class="fn-card reveal-up" onclick="openModal('politica')" style="border-color:rgba(108,59,255,0.3)">
+        <div class="fn-img-wrap">
+          <img src="https://images.unsplash.com/photo-1575320181282-9afab399332c?w=600&q=80" alt="Urnas" loading="lazy">
+          <div class="fn-img-overlay"></div>
+          <span class="fn-year-badge" style="background:rgba(108,59,255,0.85);color:white">2021–2023</span>
+          <span class="fn-sector-badge">🏛️ Política</span>
+        </div>
+        <div class="fn-body">
+          <div class="section-pill pill-violet" style="display:inline-flex;margin-bottom:10px;font-size:9px">🇧🇷 Brasil</div>
+          <div class="fn-title">"Urnas eletrônicas são fraudadas"</div>
+          <p class="fn-lead">A maior campanha de desinformação eleitoral do Brasil culminou nos ataques de 8 de janeiro de 2023.</p>
+          <div class="fn-meta">
+            <div><div class="fn-meta-label">Vítimas</div><div class="fn-meta-value" style="color:var(--violet-light)">A democracia</div></div>
+            <div><div class="fn-meta-label">Risco</div><div class="fn-meta-value" style="color:var(--violet-light)">🔴 Golpe</div></div>
+          </div>
+          <div class="fn-sites">
+            <span class="fn-site-tag">Telegram</span><span class="fn-site-tag">WhatsApp</span><span class="fn-site-tag">Twitter/X</span><span class="fn-site-tag">YouTube</span>
+          </div>
+          <div class="fn-click-hint">clique para saber mais →</div>
+        </div>
+      </div>
+
+      <div class="fn-card reveal-up" onclick="openModal('clima')" style="border-color:rgba(0,229,195,0.25)">
+        <div class="fn-img-wrap">
+          <img src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=600&q=80" alt="Clima" loading="lazy">
+          <div class="fn-img-overlay"></div>
+          <span class="fn-year-badge" style="background:rgba(0,180,155,0.85);color:white">1970s – hoje</span>
+          <span class="fn-sector-badge">🌎 Ambiente</span>
+        </div>
+        <div class="fn-body">
+          <div class="section-pill pill-teal" style="display:inline-flex;margin-bottom:10px;font-size:9px">Internacional</div>
+          <div class="fn-title">"Mudanças climáticas são farsa"</div>
+          <p class="fn-lead">Bilhões investidos pela indústria fossil para semear dúvida — atrasando ação climática por décadas.</p>
+          <div class="fn-meta">
+            <div><div class="fn-meta-label">Vítimas</div><div class="fn-meta-value" style="color:var(--teal)">Toda a humanidade</div></div>
+            <div><div class="fn-meta-label">Risco</div><div class="fn-meta-value" style="color:var(--teal)">🌍 Civilizacional</div></div>
+          </div>
+          <div class="fn-sites">
+            <span class="fn-site-tag">Fox News</span><span class="fn-site-tag">Twitter/X</span><span class="fn-site-tag">Podcasts</span><span class="fn-site-tag">Think Tanks</span>
+          </div>
+          <div class="fn-click-hint">clique para saber mais →</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CONSEQUÊNCIAS -->
+<section class="slide" id="slide-conseq">
+  <div class="conseq-wrap">
+    <div class="section-pill pill-pink reveal-up">Os danos reais</div>
+    <h2 class="section-title reveal-up">O que fake news <em style="color:var(--pink)">destroem</em></h2>
+    <div class="conseq-grid">
+      <div class="conseq-card big reveal-up" style="background:rgba(255,77,141,0.06);border-color:rgba(255,77,141,0.2)">
+        <div class="conseq-icon">⚕️</div>
+        <div>
+          <div class="conseq-title">Saúde Pública</div>
+          <p class="conseq-text">Fake news sobre "curas milagrosas" levaram pessoas a ingerir veneno. Negação de vacinas ressuscitou sarampo no Brasil em 2019.</p>
+        </div>
+        <div class="conseq-accent" style="background:var(--pink);width:100px"></div>
+      </div>
+      <div class="conseq-card reveal-up" style="border-color:rgba(108,59,255,0.2)">
+        <div class="conseq-icon" style="font-size:36px;margin-bottom:12px">🗳️</div>
+        <div class="conseq-title">Democracia</div>
+        <p class="conseq-text">Eleições manipuladas, golpes tentados, confiança em instituições esfacelada.</p>
+        <div class="conseq-accent" style="background:var(--violet);width:70px"></div>
+      </div>
+      <div class="conseq-card reveal-up" style="border-color:rgba(245,200,66,0.2)">
+        <div class="conseq-icon" style="font-size:36px;margin-bottom:12px">👤</div>
+        <div class="conseq-title">Vidas Inocentes</div>
+        <p class="conseq-text">Em 2018, um padeiro foi linchado no Brasil após fake news de pedofilia. A mentira mata pessoas reais.</p>
+        <div class="conseq-accent" style="background:var(--gold);width:70px"></div>
+      </div>
+      <div class="conseq-card reveal-up" style="border-color:rgba(0,229,195,0.2)">
+        <div class="conseq-icon" style="font-size:36px;margin-bottom:12px">🌍</div>
+        <div class="conseq-title">Planeta</div>
+        <p class="conseq-text">Décadas de negacionismo climático atrasaram políticas urgentes. Enchentes no RS (2024): 147 mortos.</p>
+        <div class="conseq-accent" style="background:var(--teal);width:70px"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMO IDENTIFICAR -->
+<section class="slide" id="slide-tips">
+  <div class="tips-wrap">
+    <div class="section-pill pill-violet reveal-up">Sua defesa</div>
+    <h2 class="section-title reveal-up">Como <em style="color:var(--violet-light)">identificar</em> uma fake news</h2>
+    <div class="tips-grid">
+      <div class="tip-card reveal-up"><span class="tip-num">01</span><span class="tip-icon">🔍</span><div class="tip-name">Verifique a fonte</div><p class="tip-desc">URL estranha? Site novo? Sem equipe? Sinal de alerta.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">02</span><span class="tip-icon">📅</span><div class="tip-name">Confira a data</div><p class="tip-desc">Notícias velhas são recontextualizadas como atuais.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">03</span><span class="tip-icon">🌐</span><div class="tip-name">Outras fontes</div><p class="tip-desc">Veículos sérios cobrem fatos importantes. Se só um site tem, desconfie.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">04</span><span class="tip-icon">😱</span><div class="tip-name">Raiva ou medo?</div><p class="tip-desc">Fake news acionam emoções antes da razão. Respire e pesquise.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">05</span><span class="tip-icon">🖼️</span><div class="tip-name">Imagem real?</div><p class="tip-desc">Use Google Lens para rastrear a origem de fotos suspeitas.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">06</span><span class="tip-icon">🎯</span><div class="tip-name">Questione seu viés</div><p class="tip-desc">Você acredita porque é verdade ou porque quer que seja?</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">07</span><span class="tip-icon">✅</span><div class="tip-name">Fact-checkers</div><p class="tip-desc">Aos Fatos, Agência Lupa, AFP Checamos. Gratuitos e confiáveis.</p></div>
+      <div class="tip-card reveal-up"><span class="tip-num">08</span><span class="tip-icon">🛑</span><div class="tip-name">Na dúvida, não repasse</div><p class="tip-desc">Compartilhar algo falso sem querer ainda faz de você parte do problema.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- EQUIPE -->
+<section class="slide" id="slide-team">
+  <div class="team-wrap">
+    <div class="section-pill pill-violet reveal-up" style="display:inline-flex">Autores</div>
+    <h2 class="section-title reveal-up">Nossa <em style="color:var(--violet-light)">equipe</em></h2>
+    <p class="section-body reveal-up" style="max-width:500px;margin:0 auto 0">Projetos Integralistas · Corresponsabilidade Social · 2024</p>
+    <div class="team-cards">
+      <div class="member-card reveal-up">
+        <div class="member-av av1">GA</div>
+        <div class="member-name">Gabriel Alves</div>
+        <div class="member-role">Pesquisa & Conteúdo</div>
+        <div class="member-sep"></div>
+        <p class="member-bio">Curadoria e análise dos casos, investigando origens e consequências documentadas de fake news.</p>
+      </div>
+      <div class="member-card reveal-up">
+        <div class="member-av av2">KR</div>
+        <div class="member-name">Kauã Rocha</div>
+        <div class="member-role">Análise & Dados</div>
+        <div class="member-sep"></div>
+        <p class="member-bio">Levantamento de dados, estatísticas e estudo dos mecanismos de propagação da desinformação.</p>
+      </div>
+      <div class="member-card reveal-up">
+        <div class="member-av av3">PA</div>
+        <div class="member-name">Pedro Augusto</div>
+        <div class="member-role">Comunicação & Síntese</div>
+        <div class="member-sep"></div>
+        <p class="member-bio">Diretrizes para identificar fake news e articulação da proposta de conscientização social.</p>
+      </div>
+    </div>
+    <div class="team-footer-note reveal-up">
+      <p>"<strong>Combater a desinformação é um ato de corresponsabilidade social.</strong> Cada cidadão que verifica antes de compartilhar fortalece a democracia e protege sua comunidade."</p>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box" id="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img id="modal-img" src="" alt="" class="modal-img">
+    <div class="modal-content">
+      <div class="modal-pills" id="modal-pills"></div>
+      <h2 class="modal-title" id="modal-title"></h2>
+      <div class="modal-grid" id="modal-grid"></div>
+      <div class="modal-section">
+        <div class="modal-section-title">O que aconteceu</div>
+        <p class="modal-text" id="modal-what"></p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Por que se espalhou</div>
+        <p class="modal-text" id="modal-why"></p>
+      </div>
+      <div class="modal-truth" id="modal-truth"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* DATA */
+const D = {
+  saude: {
+    img:"https://images.unsplash.com/photo-1584118624012-df056829fbd0?w=800&q=80",
+    pills:[{t:"🏥 Saúde",c:"pill-pink"},{t:"🌐 Internacional",c:"pill-teal"},{t:"1998 – hoje",c:"pill-gold"}],
+    title:'"Vacinas causam autismo"',
+    grid:[
+      {l:"Ano de origem",v:"1998 · The Lancet, UK"},
+      {l:"Vítimas principais",v:"Crianças · Pais desinformados"},
+      {l:"Onde circulou",v:"WhatsApp · Facebook · YouTube · Blogs antivax"},
+      {l:"Nível de risco",v:"⚠️ Morte direta"},
+      {l:"Alcance",v:"Global — todos os continentes"},
+      {l:"Origem",v:"Estudo fraudulento de Andrew Wakefield"},
+    ],
+    what:"Em 1998, o médico britânico Andrew Wakefield publicou um estudo — com apenas 12 crianças e dados falsificados — ligando a vacina MMR ao autismo. O estudo foi retratado em 2010 e Wakefield perdeu sua licença médica por fraude. Mesmo assim, a fake news sobreviveu e se reinventou nas redes sociais com força redobrada.",
+    why:"O medo natural de pais por seus filhos foi explorado. Celebridades como Jenny McCarthy amplificaram a mensagem para milhões. Algoritmos priorizaram o conteúdo emocional. Grupos organizados financiaram campanhas em larga escala — com WhatsApp como principal veículo no Brasil.",
+    truth:"✅ A VERDADE: +150 estudos com milhões de crianças não encontraram nenhuma ligação entre vacinas e autismo. O Brasil perdeu o certificado de erradicação do sarampo em 2019 por queda na vacinação. Vacinar salva vidas."
+  },
+  politica:{
+    img:"https://images.unsplash.com/photo-1575320181282-9afab399332c?w=800&q=80",
+    pills:[{t:"🏛️ Política",c:"pill-violet"},{t:"🇧🇷 Brasil",c:"pill-orange"},{t:"2021–2023",c:"pill-gold"}],
+    title:'"Urnas eletrônicas são fraudadas"',
+    grid:[
+      {l:"Período",v:"2021 a 2023"},
+      {l:"Vítimas principais",v:"A democracia brasileira"},
+      {l:"Onde circulou",v:"Telegram · WhatsApp · Twitter/X · YouTube"},
+      {l:"Nível de risco",v:"🔴 Institucional crítico"},
+      {l:"Consequência direta",v:"Ataques de 8 de janeiro de 2023"},
+      {l:"Prejuízo",v:"R$ 28 milhões ao patrimônio público"},
+    ],
+    what:"Entre 2021 e 2022, uma campanha sistemática disseminou a narrativa de que as urnas eletrônicas eram fraudáveis. Documentos falsificados, vídeos editados e alegações sem prova circularam em grupos fechados do WhatsApp e Telegram. Nenhum órgão — nem o TSE, nem o Ministério da Defesa, nem auditores internacionais — encontrou qualquer evidência de fraude.",
+    why:"Figuras com enorme alcance nas redes endossaram a narrativa. A polarização política criou uma base receptiva. Robôs (bots) multiplicaram artificialmente o alcance. O WhatsApp fechado impossibilitou a moderação. A narrativa servia a interesses políticos concretos de contestar resultados eleitorais.",
+    truth:"✅ A VERDADE: Nenhuma fraude foi comprovada. As urnas passaram por auditorias abertas a todos os partidos e às Forças Armadas. O sistema brasileiro é reconhecido como um dos mais seguros do mundo."
+  },
+  clima:{
+    img:"https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80",
+    pills:[{t:"🌎 Meio Ambiente",c:"pill-teal"},{t:"🌐 Internacional",c:"pill-orange"},{t:"1970s – hoje",c:"pill-gold"}],
+    title:'"Mudanças climáticas são uma farsa"',
+    grid:[
+      {l:"Período",v:"Anos 1970 até hoje"},
+      {l:"Vítimas principais",v:"Toda a humanidade"},
+      {l:"Onde circulou",v:"Fox News · Twitter/X · Podcasts · Think Tanks"},
+      {l:"Nível de risco",v:"🌍 Civilizacional"},
+      {l:"$ Investido em negação",v:"Mais de US$ 2 bilhões"},
+      {l:"Consenso científico",v:"97% confirmam a crise climática"},
+    ],
+    what:"Documentos internos revelam que a ExxonMobil sabia desde 1977 que seus produtos causavam mudanças climáticas — mas financiou campanhas para semear dúvida. Think tanks, políticos e perfis nas redes espalharam que o aquecimento global era 'conspiração de cientistas'. Décadas de inação resultaram em pontos de não retorno no clima global.",
+    why:"Bilhões de dólares foram investidos em propaganda negacionista. A mensagem apelou ao medo econômico (impostos, empregos). A complexidade científica foi explorada para criar falsa equivalência entre 97% de cientistas e uma minoria de céticos financiados pela indústria fossil.",
+    truth:"✅ A VERDADE: 97% dos cientistas climáticos confirmam a crise. As enchentes no RS em 2024 (147 mortos) e a seca histórica na Amazônia são impactos diretos do aquecimento global. Agir agora ainda é possível — e urgente."
+  }
+};
+
+function openModal(key){
+  const d = D[key];
+  document.getElementById('modal-img').src = d.img;
+  document.getElementById('modal-title').textContent = d.title;
+  document.getElementById('modal-what').textContent = d.what;
+  document.getElementById('modal-why').textContent = d.why;
+  document.getElementById('modal-truth').textContent = d.truth;
+  document.getElementById('modal-pills').innerHTML = d.pills.map(p=>`<span class="section-pill ${p.c}" style="display:inline-flex">${p.t}</span>`).join('');
+  document.getElementById('modal-grid').innerHTML = d.grid.map(r=>`<div><div class="modal-field-label">${r.l}</div><div class="modal-field-val">${r.v}</div></div>`).join('');
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); document.body.style.overflow=''; }
+function closeModalOutside(e){ if(e.target===document.getElementById('modal-overlay')) closeModal(); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* CURSOR */
+const cur = document.getElementById('cursor'), ring = document.getElementById('cursor-ring');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e=>{ mx=e.clientX; my=e.clientY; });
+(function anim(){
+  cur.style.left=(mx-6)+'px'; cur.style.top=(my-6)+'px';
+  rx+=(mx-rx-18)*0.12; ry+=(my-ry-18)*0.12;
+  ring.style.left=rx+'px'; ring.style.top=ry+'px';
+  requestAnimationFrame(anim);
+})();
+document.querySelectorAll('a,button,.fn-card,.type-row,.cause-card,.tip-card,.member-card,.nav-dot').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cur.style.transform='scale(2.5)'; ring.style.transform='scale(1.5)'; });
+  el.addEventListener('mouseleave',()=>{ cur.style.transform='scale(1)'; ring.style.transform='scale(1)'; });
+});
+
+/* PARTICLES */
+const canvas=document.getElementById('particles'), ctx=canvas.getContext('2d');
+let W, H;
+function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+resize(); window.addEventListener('resize',resize);
+const cols=['#6c3bff','#ff6b35','#f5c842','#00e5c3','#ff4d8d'];
+const pts = Array.from({length:130},()=>({
+  x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+  r:Math.random()*1.4+0.3,
+  dx:(Math.random()-.5)*0.3, dy:-Math.random()*0.45-0.1,
+  o:Math.random()*0.45+0.1,
+  c:cols[Math.floor(Math.random()*5)]
+}));
+(function draw(){
+  ctx.clearRect(0,0,W,H);
+  pts.forEach(p=>{
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=p.c; ctx.globalAlpha=p.o; ctx.fill();
+    p.x+=p.dx; p.y+=p.dy;
+    if(p.y<-5){ p.y=H+5; p.x=Math.random()*W; }
+    if(p.x<0) p.x=W; if(p.x>W) p.x=0;
+  });
+  ctx.globalAlpha=1; requestAnimationFrame(draw);
+})();
+
+/* REVEAL */
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); } });
+},{threshold:0.07});
+document.querySelectorAll('.reveal-up').forEach(el=>obs.observe(el));
+
+/* NAV DOTS + PROGRESS */
+const slides=['slide-hero','slide-what','slide-causes','slide-cases','slide-conseq','slide-tips','slide-team'];
+const dots=document.querySelectorAll('.nav-dot');
+const prog=document.getElementById('progress-bar');
+window.addEventListener('scroll',()=>{
+  const s=window.scrollY, t=document.body.scrollHeight-window.innerHeight;
+  prog.style.width=(s/t*100)+'%';
+  let cur2=0;
+  slides.forEach((id,i)=>{ const el=document.getElementById(id); if(el&&s>=el.offsetTop-220) cur2=i; });
+  dots.forEach((d,i)=>d.classList.toggle('active',i===cur2));
+},{passive:true});
+
+function goTo(id){ document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+</script>
+</body>
+</html>
